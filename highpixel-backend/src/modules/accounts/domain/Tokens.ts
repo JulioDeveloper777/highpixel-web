@@ -1,0 +1,16 @@
+import { WatchedList } from "@core/domain/WatchedList";
+import { Token } from "@modules/accounts/domain/Token";
+
+export class Tokens extends WatchedList<Token> {
+  private constructor(token: Token[]) {
+    super(token)
+  }
+
+  compareItems(a: Token, b: Token): boolean {
+    return a.equals(b)
+  }
+
+  public static create(tokens?: Token[]): Tokens {
+    return new Tokens(tokens || [])
+  }
+}

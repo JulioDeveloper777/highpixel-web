@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: bitnami/postgresql:latest
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: npg_mKH7w5Nbuoix
+    volumes:
+      - postgres-data:/bitnami/postgresql
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://neondb_owner:npg_jtb8hyUecHP7@ep-shiny-violet-ac6g01pz-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+
+volumes:
+  postgres-data:

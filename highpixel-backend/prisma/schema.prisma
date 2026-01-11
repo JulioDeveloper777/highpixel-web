@@ -1,0 +1,290 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-1.0.x"]
+}
+
+model User {
+  id               String         @id
+  username         String?        @unique
+  email            String         @unique
+  password         String
+  Profile          Profile?
+  role             Roles          @default(USER)
+  isPremium        Boolean        @default(false)
+  isVerified       Boolean        @default(false)
+  isEarlySupporter Boolean        @default(false)
+  features         String[]
+  timeout          Int?
+  status           String?
+  Whitelist        Whitelist?     @relation("member")
+  auth_system      String         @default("NORMAL")
+  Staff            Staff?         @relation("staff")
+  appointment      Appointments?
+  Connections      Connection[]   @relation("connections")
+  notifications    Notification[]
+  createdAt        DateTime       @default(now())
+  Tokens           Tokens[]       @relation("Tokens")
+
+  @@map("users")
+}
+
+model Profile {
+  id             String     @id @default(uuid())
+  nickname       String?
+  slug           String?    @unique
+  avatar         String?
+  banner         String?
+  bio            String?
+  status         String?
+  region_city    String?
+  region_uf      String?
+  region_country String?
+  userId         String     @unique
+  badges         Badges[]
+  medals         Medals[]
+  Posts          Post[]
+  visitor        Visitor[]  @relation("visitor")
+  visitors       Visitor[]  @relation("visitors")
+  followers      Follower[] @relation("followers")
+  following      Follower[] @relation("following")
+  User           User       @relation(fields: [userId], references: [id])
+
+  @@map("profiles")
+}
+
+model Badges {
+  id        String   @id
+  name      String
+  image     String
+  user      Profile  @relation(fields: [userid], references: [userId])
+  userid    String
+  createdAt DateTime @default(now())
+
+  @@map("badges")
+}
+
+model Medals {
+  id      String  @id
+  name    String
+  type    String
+  image   String
+  afinity String
+  user    Profile @relation(fields: [userid], references: [userId])
+  userid  String
+
+  @@map("medal")
+}
+
+model Notification {
+  id      String  @id @default(uuid())
+  read    Boolean @default(false)
+  title   String?
+  content String?
+  small   String
+  user    User    @relation(fields: [userid], references: [id])
+  userid  String
+
+  @@map("notifications")
+}
+
+model Post {
+  id        String    @id @default(uuid())
+  content   String
+  asset     String?
+  published Boolean   @default(true)
+  author    Profile   @relation(fields: [authorId], references: [userId])
+  Likes     Likes[]   @relation("likes")
+  Comment   Comment[] @relation("comments")
+  authorId  String
+  createdAt DateTime  @default(now())
+}
+
+model Likes {
+  id        String   @id @default(uuid())
+  postId    String
+  authorId  String
+  createdAt DateTime @default(now())
+  post      Post     @relation("likes", fields: [postId], references: [id])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  post      Post     @relation("comments", fields: [postId], references: [id])
+  postId    String
+  authorId  String
+  content   String
+  asset     String?
+  createdAt DateTime @default(now())
+}
+
+model Follower {
+  id           String  @id
+  followers    Profile @relation("followers", fields: [followers_id], references: [userId])
+  followers_id String
+  following_id String
+  following    Profile @relation("following", fields: [following_id], references: [userId])
+
+  @@map("followers")
+}
+
+model Trending {
+  id        String   @id
+  hashtag   String
+  counter   Int      @default(1)
+  updatedAt DateTime @default(now())
+
+  @@map("trendings")
+}
+
+model TrendingChannel {
+  id        String   @id @default(uuid())
+  name      String
+  subtitle  String?
+  thumbnail String?
+  badge     String?
+  createdBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("trending_channels")
+}
+
+model TimelineSuggestion {
+  id        String   @id @default(uuid())
+  name      String
+  username  String?
+  avatar    String?
+  subtitle  String?
+  badges    String?
+  createdBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("timeline_suggestions")
+}
+
+model Tokens {
+  id        String  @id @default(uuid())
+  used      Boolean @default(false)
+  type      String
+  user_id   String
+  user      User    @relation("Tokens", fields: [user_id], references: [id])
+  expiresIn Int
+
+  @@map("tokens")
+}
+
+model Visitor {
+  id          String   @id
+  visitors    Profile  @relation("visitors", fields: [visitors_id], references: [userId])
+  visitors_id String
+  visitor_id  String
+  visitor     Profile  @relation("visitor", fields: [visitor_id], references: [userId])
+  at          DateTime @default(now())
+
+  @@map("visitors")
+}
+
+model Whitelist {
+  id        String  @id
+  status    String
+  staff_id  String?
+  user_id   String  @unique
+  user      User    @relation("member", fields: [user_id], references: [id])
+  createdAt Int?
+  updateAt  Int?
+  timeout   Int?
+  exam      Exam[]
+  count     Int     @default(autoincrement())
+
+  @@map("whitelists")
+}
+
+model Staff {
+  id           String         @id @default(cuid())
+  user_id      String         @unique
+  user         User           @relation("staff", fields: [user_id], references: [id])
+  Times        Time[]         @relation("times")
+  access_level String         @default("minimum")
+  appointments Appointments[]
+  updated_at   String
+
+  @@map("staffs")
+}
+
+model Time {
+  id        String  @id
+  staff_id  String
+  Date      String
+  scheduled Boolean @default(false)
+  staff     Staff   @relation("times", fields: [staff_id], references: [id])
+
+  @@map("times")
+}
+
+model Exam {
+  id           String    @id
+  question     String
+  answer       String
+  whitelist    Whitelist @relation(fields: [whitelist_id], references: [id])
+  whitelist_id String
+
+  @@map("exams")
+}
+
+model Appointments {
+  id          String  @id @default(cuid())
+  staff_id    String
+  user_id     String  @unique
+  date        Int
+  status      String?
+  channelId   String?
+  name        String
+  observation String?
+  user        User    @relation(fields: [user_id], references: [id])
+  staff       Staff   @relation(fields: [staff_id], references: [id])
+}
+
+model Connection {
+  id        String   @id @default(cuid())
+  plataform String
+  fallback  String
+  user_id   String
+  user      User     @relation("connections", fields: [user_id], references: [id])
+  createdAt DateTime @default(now())
+
+  @@map("connections")
+}
+
+model Headlines {
+  id          String   @id @unique @default(uuid())
+  title       String
+  description String
+  img         String
+  createAt    DateTime @default(now())
+
+  @@map("headlines")
+}
+
+model Update {
+  id        String   @id @unique
+  product   String
+  version   String
+  download  String
+  directory String
+  release   DateTime @default(now())
+
+  @@map("updates")
+}
+
+enum Roles {
+  USER
+  SUPPORT
+  MODERATOR
+  ADMIN
+}
